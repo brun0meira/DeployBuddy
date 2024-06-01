@@ -1,0 +1,42 @@
+name: Sonarqube steira CI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-analyze:
+    runs-on: ubuntu-latest
+    services:
+      sonarqube:
+        image: sonarqube
+        ports:
+          - 9000:9000
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.22'
+      - name: Install Dependencies
+        run: go mod tidy
+        working-directory: ./src/server
+      - name: Build Application
+        run: make build
+        working-directory: ./src/server
+      - name: Run Unit Tests
+        run: go test -v ./...
+        working-directory: ./src/server
+      - name: Wait for SonarQube to be fully ready
+        run: |
+          echo "Waiting for SonarQube to fully start..."
+          until [[ "$(curl -s 'http://localhost:9000/api/system/status' | jq -r .status)" == "UP" ]]; do
+            echo "SonarQube is not ready yet..."
+            sleep 10
+          done
+          echo "SonarQube is ready."
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@master
+        with:
+          projectBaseDir: ./src/server
+          sonar.host.url: http://localhost:9000
+          sonar.login: ${{ secrets.SONAR_TOKEN }}

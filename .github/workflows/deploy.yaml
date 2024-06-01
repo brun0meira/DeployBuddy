@@ -1,0 +1,53 @@
+name: Pipeline CD - DeployBuddy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repo
+      uses: actions/checkout@v2
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+    
+    - name: Deploy to AWS CloudFormation
+      uses: aws-actions/aws-cloudformation-github-deploy@v1
+      with:
+        name: deploy-buddies-stack
+        template: infra/deploy-buddies-cf.yml
+        no-fail-on-empty-changeset: "1"
+        parameter-overrides: "DBPassword=postgresdb,EnvironmentType=dev,AWSAccessKeyId=${{ secrets.AWS_ACCESS_KEY_ID }},AWSSecretAccessKey=${{ secrets.AWS_SECRET_ACCESS_KEY }},AWSSessionToken=${{ secrets.AWS_SESSION_TOKEN }},AWSDefaultRegion=${{ secrets.AWS_DEFAULT_REGION }},Env=${{ secrets.ENV }}"
+      id: cloudformation-deploy
+
+    - name: Get EC2 instance IP
+      run: |
+        instance_id="${{ steps.cloudformation-deploy.outputs.InstanceId }}"
+        instance_ip=$(aws ec2 describe-instances --instance-ids "$instance_id" --query "Reservations[0].Instances[0].PublicIpAddress" --output text)
+        echo "INSTANCE_IP=$instance_ip" >> $GITHUB_ENV
+    
+    - name: Set up SSH Connection
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ env.INSTANCE_IP }} > ~/.ssh/known_hosts
+
+    - name: Set permissions for the script
+      run: |
+        ssh -i ~/.ssh/id_rsa ec2-user@${{ env.INSTANCE_IP }} 'sudo chmod +x /home/ec2-user/script.sh'
+
+    - name: Access EC2 instance and execute script
+      run: |
+        ssh -i ~/.ssh/id_rsa ec2-user@${{ env.INSTANCE_IP }} << 'EOF'
+          chmod +x /home/ec2-user/script.sh
+          /home/ec2-user/script.sh ${{ env.IMAGE_TAG }}
+        EOF

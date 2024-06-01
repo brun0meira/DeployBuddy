@@ -1,0 +1,641 @@
+definitions:
+  deploy-buddy_server_internal_model.AuthenticateUserRequest:
+    properties:
+      email:
+        type: string
+      password:
+        maxLength: 20
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  deploy-buddy_server_internal_model.CreateEnvRequest:
+    properties:
+      description:
+        type: string
+      name:
+        maxLength: 20
+        minLength: 3
+        type: string
+      string_connection:
+        type: string
+    required:
+    - name
+    - string_connection
+    type: object
+  deploy-buddy_server_internal_model.CreateOrgRequest:
+    properties:
+      name:
+        type: string
+      owner:
+        type: string
+      repo_name:
+        type: string
+      string_connection:
+        type: string
+    required:
+    - name
+    - repo_name
+    - string_connection
+    type: object
+  deploy-buddy_server_internal_model.CreatePackageRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      owner:
+        type: string
+      repo_name:
+        type: string
+      string_connection:
+        type: string
+    required:
+    - name
+    type: object
+  deploy-buddy_server_internal_model.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      ghp:
+        type: string
+      name:
+        maxLength: 20
+        minLength: 3
+        type: string
+      password:
+        maxLength: 20
+        minLength: 6
+        type: string
+      username:
+        maxLength: 64
+        minLength: 3
+        type: string
+    required:
+    - email
+    - name
+    - password
+    - username
+    type: object
+  deploy-buddy_server_internal_model.Environment:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      description:
+        type: string
+      environment_id:
+        type: string
+      name:
+        type: string
+      packages:
+        items:
+          $ref: '#/definitions/deploy-buddy_server_internal_model.Package'
+        type: array
+      string_connection:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  deploy-buddy_server_internal_model.Package:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        $ref: '#/definitions/gorm.DeletedAt'
+      description:
+        type: string
+      environment_id:
+        type: string
+      github_branch_id:
+        type: string
+      id:
+        type: string
+      metadata_id:
+        type: string
+      name:
+        type: string
+      owner_id:
+        type: string
+      pull_request_id:
+        type: string
+      salesforce_auth_id:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  deploy-buddy_server_internal_model.User:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        $ref: '#/definitions/gorm.DeletedAt'
+      email:
+        type: string
+      ghp:
+        type: string
+      id:
+        type: string
+      isApproved:
+        type: boolean
+      line_manager:
+        type: string
+      name:
+        type: string
+      packages:
+        items:
+          $ref: '#/definitions/deploy-buddy_server_internal_model.Package'
+        type: array
+      password:
+        type: string
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  deploy-buddy_server_internal_repository.MetadataResult:
+    properties:
+      createdByName:
+        type: string
+      fullName:
+        type: string
+      result:
+        items:
+          type: integer
+        type: array
+      type:
+        type: string
+    type: object
+  gorm.DeletedAt:
+    properties:
+      time:
+        type: string
+      valid:
+        description: Valid is true if Time is not NULL
+        type: boolean
+    type: object
+  internal_handler.ListMetadatasRequest:
+    properties:
+      string_connection:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /api/v1/devops/orgs:
+    post:
+      consumes:
+      - application/json
+      description: Create a new organization with the provided information.
+      parameters:
+      - description: Create Org
+        in: body
+        name: org
+        required: true
+        schema:
+          $ref: '#/definitions/deploy-buddy_server_internal_model.CreateOrgRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new organization
+      tags:
+      - devops
+  /api/v1/environments:
+    get:
+      description: Get all environments.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/deploy-buddy_server_internal_model.Environment'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all environments
+      tags:
+      - environments
+    post:
+      consumes:
+      - application/json
+      description: Create a new environment with the provided information.
+      parameters:
+      - description: Create Environment
+        in: body
+        name: environment
+        required: true
+        schema:
+          $ref: '#/definitions/deploy-buddy_server_internal_model.CreateEnvRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/deploy-buddy_server_internal_model.Environment'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new environment
+      tags:
+      - environments
+  /api/v1/packages:
+    post:
+      consumes:
+      - application/json
+      description: Create a new package with the provided information.
+      parameters:
+      - description: Create Package
+        in: body
+        name: package
+        required: true
+        schema:
+          $ref: '#/definitions/deploy-buddy_server_internal_model.CreatePackageRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new package
+      tags:
+      - packages
+  /api/v1/packages/metadata:
+    post:
+      consumes:
+      - application/json
+      description: List metadata with the provided connection.
+      parameters:
+      - description: List Metadata
+        in: body
+        name: metadata
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.ListMetadatasRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/deploy-buddy_server_internal_repository.MetadataResult'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List metadata
+      tags:
+      - packages
+  /api/v1/slack/interactive:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Handle interactive messages from Slack.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Handle interactive messages from Slack
+      tags:
+      - slack
+  /api/v1/users:
+    get:
+      description: Get all users.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/deploy-buddy_server_internal_model.User'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all users
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Create a new user with the provided information.
+      parameters:
+      - description: Create User
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/deploy-buddy_server_internal_model.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/deploy-buddy_server_internal_model.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new user
+      tags:
+      - users
+  /api/v1/users/{id}:
+    delete:
+      description: Delete a user by ID.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a user
+      tags:
+      - users
+    get:
+      description: Get a user by ID.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/deploy-buddy_server_internal_model.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a user
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Update a user by ID.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update User
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/deploy-buddy_server_internal_model.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/deploy-buddy_server_internal_model.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update a user
+      tags:
+      - users
+  /api/v1/users/approve/{id}:
+    post:
+      description: Approve a user by ID.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Approve a user
+      tags:
+      - users
+  /api/v1/users/auth:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate a user using their email and password.
+      parameters:
+      - description: Authenticate User
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/deploy-buddy_server_internal_model.AuthenticateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/deploy-buddy_server_internal_model.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Authenticate a user
+      tags:
+      - users
+  /api/v1/users/decline/{id}:
+    post:
+      description: Decline a user by ID.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Decline a user
+      tags:
+      - users
+swagger: "2.0"
